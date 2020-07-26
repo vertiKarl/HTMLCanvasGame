@@ -1,0 +1,15 @@
+{
+  "name": "rendertesting",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "vertiKarl",
+  "license": "GNU GPLv3",
+  "dependencies": {
+    "express": "^4.17.1",
+    "ws": "^7.3.1"
+  }
+}

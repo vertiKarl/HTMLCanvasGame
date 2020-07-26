@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Render Test</title>
+    <link rel="stylesheet" href="/styles.css">
+    <!--Simulation-->
+    <script>
+    let commands = [{
+      'name': 'canvas_color',
+      'description': 'changes background color',
+      'execute': function(...color) {
+        document.getElementById('canvas').setAttribute('style', `background-color: ${color[1]}`)
+      }
+    }]
+    function eventHandler(event) {
+      if(event.size === 0) {
+        return
+      }
+      console.log(event)
+      event = event.split(' ')
+      changeStatus(event.join(' '))
+      for(let com in commands) {
+        if(commands[com].name === event[0]) {
+          commands[com].execute(...event)
+          return
+        }
+      }
+    }
+    </script>
+    <!--WebSocket-Connection-->
+    <script>
+      let connection;
+      function changeConnection(message) {
+        document.getElementById('con').innerHTML = message
+        let cs = document.getElementById('connection_status')
+        if(message === 'connected!') {
+          cs.setAttribute('style', 'background: radial-gradient(circle, rgba(5,255,0,1) 30%, rgba(5,255,0,0) 50%)')
+        } else if(message === 'disconnected!') {
+          cs.setAttribute('style', 'background: radial-gradient(circle, rgba(255,5,0,1) 30%, rgba(255,5,0,0) 50%)')
+        }
+      }
+      function changeStatus(message) {
+        document.getElementById('status').innerHTML = message
+      }
+      window.onload = function () {
+        const status = document.getElementById('status');
+        const messages = document.getElementById('messages');
+        const input = document.getElementById('client_message');
+        input.addEventListener("keyup", function(event) {
+          if (event.keyCode === 13) {
+            sendMessage()
+          }
+        })
+
+        connection = new WebSocket('ws://localhost:8080/')
+        connection.onopen = function() {
+          console.log('connected!')
+          changeConnection("connected!")
+        }
+        connection.onclose = function() {
+          console.log('disconnected!')
+          changeConnection("disconnected!")
+          window.onload()
+        }
+        connection.onmessage = function(msg) {
+          eventHandler(msg.data)
+        }
+      }
+      function sendMessage() {
+        const message = document.getElementById('client_message')
+        if(message.value.length > 0) {
+          message.value = message.value.trim()
+          console.log(message.value)
+          connection.send(message.value)
+          message.value = ''
+        }
+      }
+    </script>
+</head>
+<body>
+    <div class="main">
+        <div id='box'>
+          <div id='connection_status'></div>
+          <h1>Simulation</h1>
+          <p id="con">trying to connect...</p>
+          <p id="status"></p>
+          <canvas id="canvas"></canvas>
+          <input id="client_message" type="text"></input>
+          <br>
+        </div>
+    </div>
+</body>
+</html>
