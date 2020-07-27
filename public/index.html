@@ -9,23 +9,100 @@
     let commands = [{
       'name': 'canvas_color',
       'description': 'changes background color',
-      'execute': function(...color) {
-        document.getElementById('canvas').setAttribute('style', `background-color: ${color[1]}`)
+      'execute': function(event) {
+        document.getElementById('canvas').setAttribute('style', `background-color: ${event.canvas_color}`)
       }
     }]
     function eventHandler(event) {
       if(event.size === 0) {
         return
       }
-      console.log(event)
-      event = event.split(' ')
-      changeStatus(event.join(' '))
-      for(let com in commands) {
-        if(commands[com].name === event[0]) {
-          commands[com].execute(...event)
+
+      try{
+        event = JSON.parse(event)
+        let string = ''
+        if(!Array.isArray(event)) {
+          let keys = Object.keys(event)
+          for(let k in keys) {
+            if(keys[k] === 'entities' && Array.isArray(event[keys[k]])) {
+              let teams
+              let sorted_teams = {
+                'A': [],
+                'B': []
+              }
+              if(event.lastkill && document.getElementById('killfeed').children.length === 0) {
+                let lastkill = document.createElement('p')
+                lastkill.innerHTML = event.lastkill
+                document.getElementById('killfeed').appendChild(lastkill)
+              } else if(event.lastkill && document.getElementById('killfeed')) {
+                document.getElementById('killfeed').children[0].innerHTML = event.lastkill
+              }
+              if(event.teams.length > 1) {
+                teams = [event.teams[0].name, event.teams[1].name]
+                document.getElementById('status').setAttribute('style', 'display: flex')
+              } else {
+                teams = ['A', 'B']
+              }
+              string = `<div id="${teams[0]}" style="width: 50%;margin-left: auto;margin-right: auto;"><h1>Team ${teams[0]}:</h1>`
+              for(let e of event[keys[k]]) {
+                if(e && e.team === teams[0]) {
+                  sorted_teams['A'].push(e)
+                  string += `<p style="color:${e.color};text-align: center;">(${e.id})${e.name} - Position: ${e.positionx}, ${e.positiony}</p>`
+                }
+              }
+              string += `<p id="t0left">Members alive: ${sorted_teams['A'].length}</p></div><div id="${teams[1]}" style="width: 50%;margin-left: auto;margin-right: auto;"><h1>Team ${teams[1]}:</h1>`
+              for(let e of event[keys[k]]) {
+                if(e && e.team === teams[1]) {
+                  sorted_teams['B'].push(e)
+                  string += `<p style="color:${e.color};text-align: center;">(${e.id})${e.name} - Position: ${e.positionx}, ${e.positiony}</p>`
+                }
+              }
+              string += `<p id="t1left">Members alive: ${sorted_teams['B'].length}</p></div>`
+              //broken
+              if(event.lastkill && sorted_teams['A'].length === 0 || event.lastkill && sorted_teams['B'].length === 0) {
+                let winnerTeam = sorted_teams['A'].length === 0 ? teams[0] : teams[1]
+                changeStatus(`<h1>Team ${winnerTeam} won!</h1>`)
+              }
+            }
+          }
+        } else {
+          document.getElementById('status').setAttribute('style', 'display: block;')
+          for(let index in event) {
+            string += `<p>${event[index].name}: ${event[index].description}</p>`
+          }
+        }
+        changeStatus(string)
+        if(event.entities) {
+          let canvas = document.getElementById('canvas')
+          let ctx = canvas.getContext('2d')
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
+          for(let e of event.entities) {
+            if(e) {
+              ctx.fillStyle = e.color
+              ctx.fillRect(e.positionx, e.positiony, 5, 5)
+            }
+          }
           return
         }
+        for(let com in commands) {
+          if(event[commands[com].name]) {
+            commands[com].execute(event)
+            return
+          }
+        }
+      } catch(e) {
+        changeStatus(e, event)
+        console.log(e)
       }
+    }
+    let loop = false
+    function update_delay() {
+      setTimeout(function() {
+        if(loop) {
+          connection.send('update')
+          update_delay();
+        }
+      }, 500)
     }
     </script>
     <!--WebSocket-Connection-->
@@ -67,8 +144,23 @@
           eventHandler(msg.data)
         }
       }
+      function autoHandler(event) {
+        loop = true
+        update_delay()
+        if (event.keyCode === 27) {
+          loop = false
+          document.getElementById('client_message').disabled = false
+          window.removeEventListener('keyup', autoHandler)
+          return
+        }
+      }
       function sendMessage() {
         const message = document.getElementById('client_message')
+        if(message.value.toLowerCase() === 'auto') {
+          document.getElementById('client_message').disabled = true
+          window.addEventListener("keyup", autoHandler)
+          return
+        }
         if(message.value.length > 0) {
           message.value = message.value.trim()
           console.log(message.value)
@@ -82,6 +174,7 @@
     <div class="main">
         <div id='box'>
           <div id='connection_status'></div>
+          <div id="killfeed"></div>
           <h1>Simulation</h1>
           <p id="con">trying to connect...</p>
           <p id="status"></p>

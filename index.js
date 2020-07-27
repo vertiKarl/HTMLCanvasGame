@@ -33,6 +33,9 @@ shell.addListener('data', (d) => {
       for (com in Server.commands) {
         list.push(Server.commands[com].name)
       }
+      for (com in Server.simulation) {
+        list.push(Server.simulation[com].name)
+      }
       console.log('Here is a list of all commands:\n'+list.join(', '))
       return
     }

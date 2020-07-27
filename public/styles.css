@@ -50,6 +50,16 @@ canvas {
   right: 0;
 }
 
+#killfeed {
+  position: absolute;
+  width: 25%;
+  height: 9%;
+  top: 6%;
+  right: 0;
+  overflow: hidden;
+  background-color: transparent;
+}
+
 .main {
   display: block;
   position: center;

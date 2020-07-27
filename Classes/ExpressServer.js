@@ -31,9 +31,10 @@ module.exports = class ExpressServer {
   }
   socketHandling() {
     this.ws.on('connection', (con) => {
-      const color = 'black'
-      const map = this.startSimulation(500, 500, color)
-      con.send(`canvas_color ${color}`)
+      const color = 'green'
+      const map = this.startSimulation(300, 150, color)
+      map.commands = this.simulation
+      con.send(`{"canvas_color": "${map.color}"}`)
       con.on('message', (msg) => {
         msg = msg.split(' ')
         for(let command of this.commands) {
@@ -47,43 +48,14 @@ module.exports = class ExpressServer {
         for(let command of this.simulation) {
           if(msg[0].toLowerCase() === command.name) {
             let res = command.execute(map, ...msg)
-              switch (typeof res) {
-                case 'object':
-                  let array = []
-                  for(let entry in res) {
-                    array.push(res[entry].name)
-                  }
-                  res = array.join(', ')
-                  //res = Object.keys(res).toString()
-                  break
-                case 'function':
-                  res = res.toString()
-                  break
-                default:
-                  res = res + ''
-                  break
-              }
-            con.send(res)
+            console.log(JSON.stringify(res))
+            con.send(JSON.stringify(res))
             return
             break
           }
         }
-        if(msg[0].toLowerCase() === 'update') {
-          for(let e of map.entities) {
-            let directions = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-            let dir = Math.floor(Math.random() * 4)
-            let movement = Math.floor(Math.random() * 4)
-            console.log(directions[dir], movement)
-            if(directions[dir] === 'UP' || directions[dir] === 'DOWN') {
-              directions[dir] === 'UP' ? e.positiony += movement : e.positiony -= movement
-            } else {
-              directions[dir] === 'RIGHT' ? e.positionx += movement : e.positionx -= movement
-            }
-          }
-          con.send(JSON.stringify(map.entities))
-          return
-        }
-        con.send('ERROR: command not found')
+
+        con.send(JSON.stringify({'ERROR': 'command not found'}))
       })
     })
   }
